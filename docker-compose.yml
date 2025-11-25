@@ -1,7 +1,6 @@
 version: "3.9"
 
 services:
-
   postgres:
     image: postgres:16-alpine
     container_name: ochiga-postgres
@@ -14,11 +13,6 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ochiga"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -26,11 +20,6 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
 
   mqtt:
     image: eclipse-mosquitto:2.0
@@ -38,16 +27,11 @@ services:
     restart: always
     ports:
       - "1883:1883"
-      - "9001:9001"
+    # ❗ IMPORTANT: Use DEFAULT CONFIG because you don't have a custom file
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
     volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
-    healthcheck:
-      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
 
   backend:
     build: ./backend
@@ -62,22 +46,16 @@ services:
       DB_USER: ochiga
       DB_PASSWORD: ochiga123
       DB_NAME: ochiga_db
-
       REDIS_HOST: redis
       REDIS_PORT: 6379
-
       MQTT_BROKER_URL: mqtt://mqtt:1883
       MQTT_CLIENT_ID: ochiga_event_processor
-
       APP_JWT_SECRET: supersecretjwtkey
       SUPABASE_JWT_SECRET: supersupabasejwtkey
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mqtt:
-        condition: service_healthy
+      - postgres
+      - redis
+      - mqtt
 
   frontend:
     build: ./frontend/ochiga-frontend
@@ -86,9 +64,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5000
+      NEXT_PUBLIC_API_URL: http://backend:5000
     depends_on:
       - backend
 
 volumes:
   pgdata:
+  mosquitto_data:
+  mosquitto_log:
