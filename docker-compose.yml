@@ -22,6 +22,17 @@ services:
     ports:
       - "6379:6379"
 
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: ochiga-mqtt
+    restart: always
+    ports:
+      - "1883:1883"   # MQTT default port
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
   backend:
     build: ./backend
     container_name: ochiga-backend
@@ -37,11 +48,16 @@ services:
       DB_NAME: ochiga_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      MQTT_BROKER_URL: mqtt://mqtt:1883
+      MQTT_USERNAME:
+      MQTT_PASSWORD:
+      MQTT_CLIENT_ID: ochiga_event_processor
       APP_JWT_SECRET: supersecretjwtkey
       SUPABASE_JWT_SECRET: supersupabasejwtkey
     depends_on:
       - postgres
       - redis
+      - mqtt
 
   frontend:
     build: ./frontend/ochiga-frontend
