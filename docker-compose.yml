@@ -80,7 +80,7 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend # NOTE: this should be root/frontend, not frontend/ochiga-frontend
+    build: ./frontend/ochiga-frontend
     container_name: ochiga-frontend
     restart: always
     ports:
